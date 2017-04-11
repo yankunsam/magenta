@@ -15,7 +15,7 @@
 #include <stdint.h>
 #include <sys/types.h>
 
-#define VM_GLOBAL_TRACE 0
+#define VM_GLOBAL_TRACE 1
 
 /* simple boot time allocator */
 extern "C" void* boot_alloc_mem(size_t len) __MALLOC;

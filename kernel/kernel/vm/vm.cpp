@@ -69,6 +69,7 @@ static void mark_pages_in_use(vaddr_t va, size_t len) {
             } else {
                 if (start_pa != ULONG_MAX) {
                     // we just completed the run
+                    TRACE;
                     pmm_alloc_range(start_pa, runlen / PAGE_SIZE, &list);
                 }
 
@@ -81,8 +82,10 @@ static void mark_pages_in_use(vaddr_t va, size_t len) {
         }
     }
 
-    if (start_pa != ULONG_MAX && runlen > 0)
+    if (start_pa != ULONG_MAX && runlen > 0) {
+        TRACE;
         pmm_alloc_range(start_pa, runlen / PAGE_SIZE, &list);
+    }
 
     // mark all of the pages we allocated as WIRED
     vm_page_t* p;

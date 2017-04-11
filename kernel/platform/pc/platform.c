@@ -33,7 +33,7 @@
 #include <kernel/cmdline.h>
 #include <kernel/vm.h>
 
-#define LOCAL_TRACE 0
+#define LOCAL_TRACE 1
 
 extern multiboot_info_t* _multiboot_info;
 extern bootdata_t* _bootdata_base;
@@ -88,6 +88,7 @@ static int process_bootitem(bootdata_t* bd, void* item) {
         break;
     case BOOTDATA_FRAMEBUFFER:
         if (bd->length < sizeof(bootdata_swfb_t)) {
+            TRACE;
             break;
         }
         bootdata_swfb_t* fb = item;
@@ -310,6 +311,7 @@ void platform_early_init(void)
     /* if the bootloader has framebuffer info, use it for early console */
     platform_early_display_init();
 
+    printf("ramdisk base: %#" PRIxPTR ", fb base: %#" PRIxPTR "\n", bootloader.ramdisk_base, (uint64_t)bootloader.fb_base);
     /* initialize physical memory arenas */
     platform_mem_init();
 

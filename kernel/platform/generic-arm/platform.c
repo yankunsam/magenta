@@ -198,6 +198,7 @@ static void platform_preserve_ramdisk(void) {
         return;
     }
 
+    printf("Ramdisk: %#" PRIxPTR "\n", ramdisk_start_phys);
     struct list_node list = LIST_INITIAL_VALUE(list);
     size_t pages = (ramdisk_end_phys - ramdisk_start_phys + PAGE_SIZE - 1) / PAGE_SIZE;
     size_t actual = pmm_alloc_range(ramdisk_start_phys, pages, &list);
@@ -352,6 +353,7 @@ void platform_early_init(void)
     pmm_add_arena(&arena);
 
 #ifdef BOOTLOADER_RESERVE_START
+    printf("reserving bootloader?\n");
     /* Allocate memory regions reserved by bootloaders for other functions */
     pmm_alloc_range(BOOTLOADER_RESERVE_START, BOOTLOADER_RESERVE_SIZE / PAGE_SIZE, NULL);
 #endif

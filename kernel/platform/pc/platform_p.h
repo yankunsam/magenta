@@ -29,7 +29,7 @@ extern uint16_t pcie_pio_size;
 void platform_init_debug_early(void);
 void platform_init_debug(void);
 void platform_init_timer_percpu(void);
-void platform_mem_init(void);
+void platform_mem_init(pc_bootloader_data_t*);
 
 status_t x86_alloc_msi_block(uint requested_irqs, bool can_target_64bit,
                              bool is_msix, pcie_msi_block_t* out_block);

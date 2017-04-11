@@ -58,6 +58,7 @@ public:
     }
 
     paddr_t page_address_from_arena(const vm_page* page) const {
+        TRACE;
         uintptr_t page_addr = reinterpret_cast<uintptr_t>(page);
         uintptr_t page_array_base = reinterpret_cast<uintptr_t>(page_array_);
 
@@ -65,6 +66,7 @@ public:
     }
 
     bool address_in_arena(paddr_t address) const {
+        TRACE;
         return (address >= info_->base && address <= info_->base + info_->size - 1);
     }
 

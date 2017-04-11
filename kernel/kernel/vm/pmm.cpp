@@ -171,7 +171,9 @@ size_t pmm_alloc_range(paddr_t address, size_t count, struct list_node* list) {
 
     /* walk through the arenas, looking to see if the physical page belongs to it */
     for (auto& a : arena_list) {
+        TRACEF("Scanning arena\n");
         while (allocated < count && a.address_in_arena(address)) {
+            TRACE;
             vm_page_t* page = a.AllocSpecific(address);
             if (!page)
                 break;

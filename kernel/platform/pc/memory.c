@@ -6,6 +6,7 @@
 
 #include <assert.h>
 #include <err.h>
+#include <kernel/cmdline.h>
 #include <kernel/vm.h>
 #include <platform/pc/bootloader.h>
 #include <magenta/boot/multiboot.h>
@@ -14,7 +15,7 @@
 
 #include "platform_p.h"
 
-#define LOCAL_TRACE 0
+#define LOCAL_TRACE 1
 
 /* multiboot information passed in, if present */
 extern multiboot_info_t *_multiboot_info;
@@ -81,6 +82,39 @@ static int mem_arena_init(boot_addr_range_t *range)
 {
     int used = 0;
 
+    /* kernel.memory_limit allows an upper bound on cumulative size for "memory"
+     * arena entries to be imposed, effectively imposing an artificial system
+     * memory limit. If none is processed from the cmdline then the max is set
+     * to the largest uint64 to keep the logic the same in all cases.
+     */
+    uint64_t memory_allowed = cmdline_get_uint64("kernel.memory-limit", 0);
+    bool memory_limit_exists = memory_allowed;
+    __UNUSED bool fit_exists = false;
+
+    if (memory_limit_exists) {
+        memory_allowed = ROUNDDOWN(memory_allowed, PAGE_SIZE);
+        LTRACEF("Memory limit of %" PRIx64 " imposed on the 'memory' arenas\n", memory_allowed);
+
+        /* Walk the ranges once to see if there is a single 'memory' arena that can
+         * fit the entirety of our memory limit. If there is then note it so we use that
+         * one instead of reaching our total via adding up smaller arenas. This allows us
+         * to to have the largest contiguous block of memory that fits within the memory
+         * limits imposed by the cmdline arg.
+         */
+        for (range->reset(range), range->advance(range);
+                !range->is_reset;
+                range->advance(range)) {
+            if (!range->is_mem) {
+                continue;
+            }
+
+            if (range->size >= memory_allowed) {
+                fit_exists = true;
+                break;
+            }
+        }
+    }
+
     for (range->reset(range), range->advance(range);
          !range->is_reset && used < PMM_ARENAS;
          range->advance(range)) {
@@ -104,6 +138,30 @@ static int mem_arena_init(boot_addr_range_t *range)
 
             base += adjust;
             size -= adjust;
+        }
+
+        if (memory_limit_exists) {
+            /* We're out of memory, don't add or inspect this window */
+            if (memory_allowed == 0) {
+                LTRACEF("Skipping pmm range at %#" PRIxPTR " of %#zx bytes due to memory limit.\n",
+                        base, size);
+                continue;
+            }
+
+            /* If we know a range exists that we fit into we can ignore
+             * any range that we don't fit into.
+             */
+            if (fit_exists && memory_allowed > size) {
+                continue;
+            }
+
+            /* handle truncating to fit within any defined memory limits */
+            if (memory_allowed >= size) {
+                memory_allowed -= size;
+            } else {
+                size = ROUNDDOWN(memory_allowed, PAGE_SIZE);
+                memory_allowed = 0;
+            }
         }
 
         pmm_arena_info_t *arena = &mem_arenas[used];
@@ -234,7 +292,7 @@ static void efi_range_advance(boot_addr_range_t *range)
     }
 
     efi_memory_descriptor *entry = seq->base + (seq->index * seq->entrysz);
-    efi_print("EFI: ", entry);
+    //efi_print("EFI: ", entry);
     range->base = entry->PhysicalStart;
     range->size = entry->NumberOfPages * PAGE_SIZE;
     range->is_reset = 0;
@@ -249,7 +307,7 @@ static void efi_range_advance(boot_addr_range_t *range)
         if (efi_is_mem(next->Type) != range->is_mem) {
             break;
         }
-        efi_print("EFI+ ", next);
+      //  efi_print("EFI+ ", next);
         range->size += next->NumberOfPages * PAGE_SIZE;
         seq->index++;
     }
@@ -446,6 +504,7 @@ status_t enumerate_e820(enumerate_e820_callback callback, void* ctx) {
 void platform_mem_init(void)
 {
     int arena_count = platform_mem_range_init();
+    TRACEF("arena count = %d\n", arena_count);
     for (int i = 0; i < arena_count; i++)
         pmm_add_arena(&mem_arenas[i]);
 
