@@ -193,8 +193,8 @@ struct x86_model_info {
     uint8_t model;
     uint8_t stepping;
 
-    uint16_t display_family;
-    uint8_t display_model;
+    uint32_t display_family;
+    uint32_t display_model;
 };
 
 const struct x86_model_info * x86_get_model(void);

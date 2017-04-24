@@ -352,7 +352,10 @@ static void read_xsave_state_info(void)
     struct cpuid_leaf leaf;
     if (!x86_get_cpuid_subleaf(X86_CPUID_XSAVE, 0, &leaf)) {
         LTRACEF("could not find xsave leaf\n");
-        goto bailout;
+        xsave_supported = false;
+        xsaves_supported = false;
+        xsaveopt_supported = false;
+        return;
     }
     xcr0_component_bitmap = ((uint64_t)leaf.d << 32) | leaf.a;
     size_t max_area = XSAVE_EXTENDED_AREA_OFFSET;
@@ -371,7 +374,10 @@ static void read_xsave_state_info(void)
     if ((xcr0_component_bitmap & 0x3) != 0x3) {
         LTRACEF("unexpected xcr0 bitmap %016" PRIx64 "\n",
                 xcr0_component_bitmap);
-        goto bailout;
+        xsave_supported = false;
+        xsaves_supported = false;
+        xsaveopt_supported = false;
+        return;
     }
 
     /* Read info about the state components */
@@ -400,10 +406,6 @@ static void read_xsave_state_info(void)
     LTRACEF("total xsave size: %zu\n", max_area);
 
     return;
-bailout:
-    xsave_supported = false;
-    xsaves_supported = false;
-    xsaveopt_supported = false;
 }
 
 static void recompute_state_size(void) {
